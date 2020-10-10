@@ -4,18 +4,19 @@ import it.jump3.urbi.service.model.Vehicle;
 import it.jump3.urbi.service.model.VehicleResponse;
 import it.jump3.urbi.service.model.cityscoot.CityScootRoot;
 import it.jump3.urbi.service.model.enjoy.EnjoyRoot;
+import it.jump3.urbi.utils.Utility;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @Service
 @Slf4j
-public class VehicleService {
+public class VehicleService implements IVehicle {
 
     @Autowired
     private AsyncService asyncService;
@@ -27,7 +28,8 @@ public class VehicleService {
     /*
         Get vehicles from multiple providers
      */
-    public VehicleResponse getVehicles(Locale locale) {
+    @Override
+    public VehicleResponse getVehicles(String city, Integer page, Integer size, Locale locale) {
 
         CompletableFuture<EnjoyRoot> enjoyFuture = asyncService.getEnjoy();
         CompletableFuture<CityScootRoot> cityScootFuture = asyncService.getCityScoot();
@@ -43,7 +45,7 @@ public class VehicleService {
             EnjoyRoot enjoy = enjoyFuture.get();
 
             log.info("Process enjoy data...");
-            List<Vehicle> cars = mapperUtil.getVehiclesFromEnjoy(enjoy);
+            List<Vehicle> cars = mapperUtil.getVehiclesFromEnjoy(enjoy, city);
             log.info("Process enjoy data done");
 
             vehicleResponse.getVehicleList().addAll(cars);
@@ -57,7 +59,7 @@ public class VehicleService {
             CityScootRoot cityScoot = cityScootFuture.get();
 
             log.info("Process cityScoot data...");
-            List<Vehicle> scooters = mapperUtil.getVehiclesFromCityScoot(cityScoot);
+            List<Vehicle> scooters = mapperUtil.getVehiclesFromCityScoot(cityScoot, city);
             log.info("Process cityScoot data done");
 
             vehicleResponse.getVehicleList().addAll(scooters);
@@ -65,6 +67,27 @@ public class VehicleService {
             vehicleResponse.increasesCountScooter(scooters.size());
         } catch (InterruptedException | ExecutionException e) {
             log.error("Error during performing retrieve cityScoot data: ".concat(e.getMessage()), e);
+        }
+
+        // for pageable result
+        if (!CollectionUtils.isEmpty(vehicleResponse.getVehicleList())) {
+            vehicleResponse.getVehicleList().sort(Comparator.comparing(Vehicle::getId).thenComparing(Vehicle::getVehiclesType));
+
+            Collection<List<Vehicle>> chunkedVehicleList = (Collection<List<Vehicle>>) Utility.getChunkedList(vehicleResponse.getVehicleList(), size);
+            vehicleResponse.setPages(chunkedVehicleList.size());
+
+            if (chunkedVehicleList.size() <= page) {
+                vehicleResponse.setVehicleList(new ArrayList<>());
+            } else {
+                int i = -1;
+                for (List<Vehicle> currentVehicleList : chunkedVehicleList) {
+                    i++;
+                    if (i == page) {
+                        vehicleResponse.setVehicleList(currentVehicleList);
+                        break;
+                    }
+                }
+            }
         }
 
         return vehicleResponse;

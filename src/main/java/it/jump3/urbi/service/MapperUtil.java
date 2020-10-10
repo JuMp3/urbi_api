@@ -9,16 +9,14 @@ import it.jump3.urbi.service.model.enjoy.EnjoyRoot;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Component
 public class MapperUtil {
 
-    public List<Vehicle> getVehiclesFromEnjoy(EnjoyRoot enjoy) {
+    public List<Vehicle> getVehiclesFromEnjoy(EnjoyRoot enjoy, String city) {
 
         Set<Vehicle> vehicles = new HashSet<>();
 
@@ -27,8 +25,13 @@ public class MapperUtil {
                     .stream()
                     .filter(carsAvailabilityData -> !CollectionUtils.isEmpty(carsAvailabilityData.getCarData()))
                     .forEach(carsAvailabilityData ->
-                            carsAvailabilityData.getCarData().forEach(carData ->
-                                    vehicles.add(getVehicleFromEnjoy(carData))));
+                            carsAvailabilityData.getCarData().stream()
+                                    .filter(carData -> !StringUtils.isEmpty(carData.getCarIdentifier()) &&
+                                            org.apache.commons.lang.StringUtils.isNumeric(carData.getCarIdentifier()) &&
+                                            (StringUtils.isEmpty(city) || (!StringUtils.isEmpty(carData.getLocationData().getAddress()) &&
+                                                    carData.getLocationData().getAddress().toLowerCase().contains(city.toLowerCase()))))
+                                    .forEach(carData ->
+                                            vehicles.add(getVehicleFromEnjoy(carData))));
         }
 
         return new ArrayList<>(vehicles);
@@ -37,7 +40,10 @@ public class MapperUtil {
     private Vehicle getVehicleFromEnjoy(CarData carData) {
         Assert.notNull(carData, "carData must be not null");
         Vehicle vehicle = new Vehicle();
-        vehicle.setId(carData.getCarIdentifier());
+
+        int idInt = Integer.parseInt(carData.getCarIdentifier());
+        vehicle.setId(idInt);
+
         vehicle.setVehiclesType(VehiclesTypeEnum.CAR);
         vehicle.setDescription(carData.getCarName());
         vehicle.setPlate(carData.getCarPlate());
@@ -47,14 +53,15 @@ public class MapperUtil {
         return vehicle;
     }
 
-    public List<Vehicle> getVehiclesFromCityScoot(CityScootRoot cityScoot) {
+    public List<Vehicle> getVehiclesFromCityScoot(CityScootRoot cityScoot, String city) {
 
         Set<Vehicle> vehicles = new HashSet<>();
 
         if (cityScoot != null && cityScoot.getData() != null && !CollectionUtils.isEmpty(cityScoot.getData().getScooters())) {
             cityScoot.getData().getScooters()
                     .stream()
-                    .filter(scooter -> scooter != null && scooter.getId() != 0)
+                    .filter(scooter -> scooter != null && scooter.getId() != 0 && (StringUtils.isEmpty(city) ||
+                            (!StringUtils.isEmpty(scooter.getGeoCoding()) && scooter.getGeoCoding().toLowerCase().contains(city.toLowerCase()))))
                     .forEach(scooter -> vehicles.add(getVehicleFromEnjoy(scooter)));
         }
 
@@ -64,12 +71,18 @@ public class MapperUtil {
     private Vehicle getVehicleFromEnjoy(Scooter scooter) {
         Assert.notNull(scooter, "scooter must be not null");
         Vehicle vehicle = new Vehicle();
-        vehicle.setId(Integer.toString(scooter.getId()));
+        vehicle.setId(scooter.getId());
         vehicle.setVehiclesType(VehiclesTypeEnum.SCOOTER);
         vehicle.setPlate(scooter.getPlate());
         vehicle.setAddress(scooter.getGeoCoding());
         vehicle.setLatitude(scooter.getLatitude());
         vehicle.setLongitude(scooter.getLongitude());
         return vehicle;
+    }
+
+    private List<Vehicle> getOrderList(Set<Vehicle> vehicles) {
+        List vehicleList = new ArrayList<>(vehicles);
+        vehicleList.sort(Comparator.comparing(Vehicle::getId));
+        return vehicleList;
     }
 }

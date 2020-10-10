@@ -18,6 +18,7 @@ public class VehicleResponse {
     private Long countAll = 0L;
     private Long countCar = 0L;
     private Long countScooter = 0L;
+    private Integer pages = 0;
 
     public void increasesCountAll(Integer count) {
         this.countAll += count;

@@ -16,7 +16,7 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Vehicle {
 
-    private String id;
+    private Integer id;
     private VehiclesTypeEnum vehiclesType;
     private String description;
     private String plate;
@@ -29,11 +29,12 @@ public class Vehicle {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Vehicle vehicle = (Vehicle) o;
-        return Objects.equals(id, vehicle.id);
+        return Objects.equals(id, vehicle.id) &&
+                vehiclesType == vehicle.vehiclesType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(id, vehiclesType);
     }
 }

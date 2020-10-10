@@ -1,4 +1,5 @@
-FROM fra.ocir.io/sisalspa/olg/promoloyalty/openjdk-alpine-slim:release-java-11
+FROM gcr.io/distroless/java:11
+#FROM adoptopenjdk/openjdk11:alpine-slim
 ARG JAR_FILE
 ADD ${JAR_FILE} app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]
