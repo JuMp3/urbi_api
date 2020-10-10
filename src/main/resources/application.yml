@@ -1,0 +1,43 @@
+#server:
+#  port: 8080
+
+spring:
+  application:
+    name: URBI-MS
+#  profiles:
+#    active: ${PROFILE}
+
+# ===============================
+# = SWAGGER
+# ===============================
+springfox.documentation.swagger.v2.path: /api-docs
+swagger:
+  urbi:
+    groupname:
+      v1: Urbi API v1
+      v2: Urbi API v2
+    title: Urbi API
+    title.description: Urbi API exposes several features, such as the availability of vehicles in city sharing.
+
+# ===============================
+# = LOG
+# ===============================
+logging:
+  level:
+    it.jump3.urbi: DEBUG
+
+# ===============================
+# = ACTUATOR
+# ===============================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,httptrace,refresh,bus-refresh,loggers,metrics
+
+## Configuring info endpoint
+info:
+  app:
+    name: ${swagger.urbi.title}
+    description: ${swagger.urbi.title.description}
+  java-vendor: ${java.specification.vendor}
